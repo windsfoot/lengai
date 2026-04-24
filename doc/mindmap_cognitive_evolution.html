@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #FFFFFF;
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'SimHei', sans-serif;
+  }
+  #mindmap { padding: 60px; display: inline-block; min-width: 100%; position: relative; }
+  #mindmap > svg.lines {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ─── Root Node ─── */
+  #mindmap[data-intent="finance"] .root-node { background: linear-gradient(135deg, #1E3A5F, #1E40AF); box-shadow: 0 4px 12px rgba(30,58,95,0.25); }
+  
+  .root-node {
+    color: white; font-size: 22px; font-weight: 700;
+    padding: 20px 36px; border-radius: 14px;
+    white-space: nowrap; flex-shrink: 0; align-self: center;
+    margin: 0 60px; text-align: center;
+  }
+
+  /* ─── Container Layout ─── */
+  .lr-tree { display: flex; align-items: center; gap: 0; position: relative; }
+  .tree-layout { display: flex; align-items: center; gap: 0; position: relative; }
+  
+  .left-side, .right-side { display: flex; flex-direction: column; gap: 14px; }
+  .left-side .children, .left-side .leaf-group, .left-side .deep-group {
+    align-items: flex-end; padding-right: 16px;
+  }
+  .right-side .children, .right-side .leaf-group, .right-side .deep-group {
+    align-items: flex-start; padding-left: 16px;
+  }
+  
+  .branch { display: flex; align-items: flex-start; gap: 0; }
+  .left-side .branch { flex-direction: row-reverse; }
+  
+  .sub-branch { display: flex; align-items: flex-start; gap: 0; }
+  .left-side .sub-branch { flex-direction: row-reverse; }
+
+  /* ─── First-Level Branch Node ─── */
+  .branch-node {
+    font-size: 15px; font-weight: 600;
+    padding: 10px 20px; border-radius: 8px;
+    white-space: nowrap; flex-shrink: 0; border: 2px solid;
+  }
+  
+  /* ─── Second-Level Sub-Node ─── */
+  .sub-node {
+    font-size: 13px; font-weight: 500;
+    padding: 7px 14px; border-radius: 6px;
+    white-space: nowrap; flex-shrink: 0; border: 1.5px solid;
+    background: #F8FAFC;
+  }
+  
+  /* ─── Leaf Node ─── */
+  .leaf {
+    font-size: 12px; font-weight: 400; color: #475569;
+    padding: 4px 10px; background: #FAFAFA;
+    border-radius: 12px; border: 1px solid #E5E7EB;
+    white-space: nowrap; line-height: 1.5;
+  }
+  
+  /* ─── Deep Node ─── */
+  .deep-node {
+    font-size: 11px; font-weight: 400; color: #64748B;
+    padding: 3px 8px; background: #F8FAFC;
+    border-radius: 10px; border: 1px solid #E2E8F0;
+    white-space: nowrap;
+  }
+
+  /* ─── Child Node Container ─── */
+  .children { display: flex; flex-direction: column; gap: 5px; }
+  .leaf-group { display: flex; flex-direction: column; gap: 4px; }
+  .deep-group { display: flex; flex-direction: column; gap: 3px; }
+
+  /* ─── Color System ─── */
+  .c-blue { background: #EFF6FF; border-color: #3B82F6; color: #1E40AF; }
+  .c-green { background: #F0FDF4; border-color: #10B981; color: #065F46; }
+  .c-amber { background: #FFF7ED; border-color: #F59E0B; color: #92400E; }
+  .c-purple { background: #F5F3FF; border-color: #8B5CF6; color: #5B21B6; }
+  .c-red { background: #FEF2F2; border-color: #EF4444; color: #991B1B; }
+  .c-cyan { background: #ECFEFF; border-color: #06B6D4; color: #155E75; }
+  .c-teal { background: #F0FDFA; border-color: #14B8A6; color: #134E4A; }
+
+  /* Second-level sub-node inherits branch color scheme */
+  .c-blue .sub-node { background: #F0F7FF; border-color: #93C5FD; color: #1E40AF; }
+  .c-green .sub-node { background: #F2FDF6; border-color: #6EE7B7; color: #065F46; }
+  .c-amber .sub-node { background: #FFF9F0; border-color: #FCD34D; color: #92400E; }
+  .c-purple .sub-node { background: #F8F6FF; border-color: #C4B5FD; color: #5B21B6; }
+  .c-red .sub-node { background: #FFF5F5; border-color: #FCA5A5; color: #991B1B; }
+  .c-cyan .sub-node { background: #F0FEFF; border-color: #67E8F9; color: #155E75; }
+  .c-teal .sub-node { background: #F2FDFA; border-color: #5EEAD4; color: #134E4A; }
+  
+  .center-root {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+<div id="mindmap" data-intent="finance">
+  <div class="tree-layout">
+    
+    <!-- Left Side -->
+    <div class="left-side">
+      
+      <!-- Branch 1: 交易认知演变 -->
+      <div class="branch c-blue">
+        <div class="branch-node">交易认知演变</div>
+        <div class="children">
+          <div class="sub-branch">
+            <div class="sub-node">第一阶段：技术入门</div>
+            <div class="leaf-group">
+              <div class="leaf">迷信技术指标</div>
+              <div class="leaf">追求必胜公式</div>
+              <div class="leaf">线性思维预测</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">第二阶段：系统构建</div>
+            <div class="leaf-group">
+              <div class="leaf">建立交易规则</div>
+              <div class="leaf">设定止损止盈</div>
+              <div class="leaf">关注盈亏比</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">第三阶段：哲学深化</div>
+            <div class="leaf-group">
+              <div class="leaf">理解市场本质</div>
+              <div class="leaf">洞察人性规律</div>
+              <div class="leaf">引入熵概念</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">第四阶段：知行合一</div>
+            <div class="leaf-group">
+              <div class="leaf">景气-想象框架</div>
+              <div class="leaf">直觉交易形成</div>
+              <div class="leaf">无剑境界</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Branch 2: 思路宽度拓展 -->
+      <div class="branch c-green">
+        <div class="branch-node">思路宽度拓展</div>
+        <div class="children">
+          <div class="sub-branch">
+            <div class="sub-node">点状思维</div>
+            <div class="leaf-group">
+              <div class="leaf">单一技术指标</div>
+              <div class="leaf">线性因果关系</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">线状思维</div>
+            <div class="leaf-group">
+              <div class="leaf">多因素关联</div>
+              <div class="leaf">因果链条建立</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">面状思维</div>
+            <div class="leaf-group">
+              <div class="leaf">跨学科融合</div>
+              <div class="leaf">多维视角分析</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">体状思维</div>
+            <div class="leaf-group">
+              <div class="leaf">系统性思维</div>
+              <div class="leaf">动态演化视角</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Branch 3: 心态演变 -->
+      <div class="branch c-amber">
+        <div class="branch-node">心态演变历程</div>
+        <div class="children">
+          <div class="sub-branch">
+            <div class="sub-node">焦虑急躁期</div>
+            <div class="leaf-group">
+              <div class="leaf">频繁交易</div>
+              <div class="leaf">追涨杀跌</div>
+              <div class="leaf">患得患失</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">规则约束期</div>
+            <div class="leaf-group">
+              <div class="leaf">按计划交易</div>
+              <div class="leaf">严格执行止损</div>
+              <div class="leaf">强制复盘</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">理性平和期</div>
+            <div class="leaf-group">
+              <div class="leaf">接受亏损</div>
+              <div class="leaf">耐心等待</div>
+              <div class="leaf">独立思考</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">顺势自然期</div>
+            <div class="leaf-group">
+              <div class="leaf">顺势而为</div>
+              <div class="leaf">不强求结果</div>
+              <div class="leaf">享受过程</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+    
+    <!-- Center Root -->
+    <div class="center-root">
+      <div class="root-node">冷爱认知进化<br/><span style="font-size:14px;font-weight:400;">2019-2026 七年演变</span></div>
+    </div>
+    
+    <!-- Right Side -->
+    <div class="right-side">
+      
+      <!-- Branch 4: 情绪控制进化 -->
+      <div class="branch c-purple">
+        <div class="branch-node">情绪控制进化</div>
+        <div class="children">
+          <div class="sub-branch">
+            <div class="sub-node">情绪奴隶期</div>
+            <div class="leaf-group">
+              <div class="leaf">被贪婪恐惧控制</div>
+              <div class="leaf">决策情绪化</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">情绪觉察期</div>
+            <div class="leaf-group">
+              <div class="leaf">能识别情绪</div>
+              <div class="leaf">仍难控制</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">情绪管理期</div>
+            <div class="leaf-group">
+              <div class="leaf">主动管理情绪</div>
+              <div class="leaf">建立应对机制</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">情绪运用期</div>
+            <div class="leaf-group">
+              <div class="leaf">利用情绪信息</div>
+              <div class="leaf">大众情绪作指标</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">情绪超越期</div>
+            <div class="leaf-group">
+              <div class="leaf">不以盈喜亏悲</div>
+              <div class="leaf">情绪不再影响决策</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Branch 5: 哲学认知深化 -->
+      <div class="branch c-cyan">
+        <div class="branch-node">哲学认知深化</div>
+        <div class="children">
+          <div class="sub-branch">
+            <div class="sub-node">核心概念形成</div>
+            <div class="leaf-group">
+              <div class="leaf">周期思维</div>
+              <div class="leaf">熵增熵减</div>
+              <div class="leaf">因果逻辑</div>
+              <div class="leaf">破局思维</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">跨界融合</div>
+            <div class="leaf-group">
+              <div class="leaf">物理学视角</div>
+              <div class="leaf">心理学视角</div>
+              <div class="leaf">哲学视角</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">最高境界</div>
+            <div class="leaf-group">
+              <div class="leaf">无剑之心</div>
+              <div class="leaf">天人合一</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Branch 6: 自我认知成长 -->
+      <div class="branch c-teal">
+        <div class="branch-node">自我认知成长</div>
+        <div class="children">
+          <div class="sub-branch">
+            <div class="sub-node">认识自己</div>
+            <div class="leaf-group">
+              <div class="leaf">觉察行为模式</div>
+              <div class="leaf">识别思维习惯</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">接受自己</div>
+            <div class="leaf-group">
+              <div class="leaf">接纳不完美</div>
+              <div class="leaf">不自责不自弃</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">改变自己</div>
+            <div class="leaf-group">
+              <div class="leaf">持续改进</div>
+              <div class="leaf">向内修行</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Branch 7: 认知进化机制 -->
+      <div class="branch c-red">
+        <div class="branch-node">认知进化机制</div>
+        <div class="children">
+          <div class="sub-branch">
+            <div class="sub-node">持续反思</div>
+            <div class="leaf-group">
+              <div class="leaf">交易日志</div>
+              <div class="leaf">周度复盘</div>
+              <div class="leaf">年度总结</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">跨界融合</div>
+            <div class="leaf-group">
+              <div class="leaf">多学科学习</div>
+              <div class="leaf">知识整合</div>
+            </div>
+          </div>
+          <div class="sub-branch">
+            <div class="sub-node">实践验证</div>
+            <div class="leaf-group">
+              <div class="leaf">小仓位试错</div>
+              <div class="leaf">长期验证</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+    
+  </div>
+</div>
+
+<script>
+/**
+ * Universal recursive connector script v4-fix
+ */
+function drawAllLines() {
+  const map = document.getElementById('mindmap');
+  if (!map) { console.error('❌ #mindmap not found'); return; }
+  const cRect = map.getBoundingClientRect();
+
+  const old = map.querySelector('svg.lines');
+  if (old) old.remove();
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('lines');
+  svg.setAttribute('width', cRect.width);
+  svg.setAttribute('height', cRect.height);
+  svg.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:1;';
+  let lineCount = 0;
+
+  function rel(el) {
+    const r = el.getBoundingClientRect();
+    return {
+      cx: r.left - cRect.left + r.width/2,
+      cy: r.top - cRect.top + r.height/2,
+      left: r.left - cRect.left,
+      right: r.right - cRect.left,
+    };
+  }
+
+  function drawLine(x1, y1, x2, y2, color, width) {
+    const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    l.setAttribute('x1', Math.round(x1)); l.setAttribute('y1', Math.round(y1));
+    l.setAttribute('x2', Math.round(x2)); l.setAttribute('y2', Math.round(y2));
+    l.setAttribute('stroke', color); l.setAttribute('stroke-width', width);
+    l.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(l);
+    lineCount++;
+  }
+
+  const lineStyles = [
+    { color: '#64748B', width: 2.5 },
+    { color: '#94A3B8', width: 2 },
+    { color: '#A8B4C2', width: 1.5 },
+    { color: '#B8C2CC', width: 1.2 },
+    { color: '#CBD5E1', width: 1 },
+  ];
+  function getLineStyle(branchColor, depth) {
+    const s = lineStyles[Math.min(depth, lineStyles.length - 1)];
+    return { color: s.color, width: s.width };
+  }
+
+  function connect(parentEl, childEls, color, width, dir) {
+    if (!childEls.length) return;
+    const p = rel(parentEl);
+    const startX = dir === 'left' ? p.left : p.right;
+    const startY = p.cy;
+
+    if (childEls.length === 1) {
+      const c = rel(childEls[0]);
+      const endX = dir === 'left' ? c.right : c.left;
+      const midY = Math.round((startY + c.cy) / 2);
+      drawLine(startX, midY, endX, midY, color, width);
+      return;
+    }
+
+    let closestEdge;
+    if (dir === 'left') {
+      closestEdge = Math.max(...childEls.map(ch => rel(ch).right));
+    } else {
+      closestEdge = Math.min(...childEls.map(ch => rel(ch).left));
+    }
+    const childClearance = 16;
+    const midpoint = startX + (closestEdge - startX) / 2;
+    const midFromChild = dir === 'left' ? closestEdge + childClearance : closestEdge - childClearance;
+    const midX = dir === 'left'
+      ? Math.min(midpoint, midFromChild)
+      : Math.max(midpoint, midFromChild);
+
+    drawLine(startX, startY, midX, startY, color, width);
+
+    const allCYs = childEls.map(ch => rel(ch).cy);
+    const minY = Math.min(startY, ...allCYs);
+    const maxY = Math.max(startY, ...allCYs);
+    drawLine(midX, minY, midX, maxY, color, width);
+
+    childEls.forEach(ch => {
+      const c = rel(ch);
+      const endX = dir === 'left' ? c.right : c.left;
+      const endY = c.cy;
+      drawLine(midX, endY, endX, endY, color, width);
+    });
+  }
+
+  const NODE_SEL = '.branch-node, .sub-node, .leaf, .deep-node';
+  const CONTAINER_SEL = ':scope > .children, :scope > .leaf-group, :scope > .deep-group';
+
+  function processChildren(parentNodeEl, containerEl, branchColor, depth, dir) {
+    if (!containerEl) return;
+    const childNodeEls = [];
+    for (const wrapper of containerEl.children) {
+      const nodeEl = wrapper.matches?.(NODE_SEL) ? wrapper : wrapper.querySelector(NODE_SEL);
+      if (nodeEl) childNodeEls.push(nodeEl);
+    }
+    if (!childNodeEls.length) return;
+    const style = getLineStyle(branchColor, depth);
+    connect(parentNodeEl, childNodeEls, style.color, style.width, dir);
+
+    for (const wrapper of containerEl.children) {
+      const nodeEl = wrapper.matches?.(NODE_SEL) ? wrapper : wrapper.querySelector(NODE_SEL);
+      if (!nodeEl) continue;
+      wrapper.querySelectorAll(CONTAINER_SEL).forEach(nc =>
+        processChildren(nodeEl, nc, branchColor, depth + 1, dir)
+      );
+    }
+  }
+
+  const rootNode = map.querySelector('.root-node');
+  if (!rootNode) { console.error('❌ .root-node not found'); return; }
+
+  // Left side
+  const leftBranches = map.querySelectorAll('.left-side > .branch');
+  const leftBranchNodes = [];
+  leftBranches.forEach(branch => {
+    const bNode = branch.querySelector('.branch-node');
+    if (bNode) leftBranchNodes.push(bNode);
+  });
+  if (leftBranchNodes.length) {
+    connect(rootNode, leftBranchNodes, lineStyles[0].color, lineStyles[0].width, 'left');
+  }
+  leftBranches.forEach(branch => {
+    const bNode = branch.querySelector('.branch-node');
+    if (!bNode) return;
+    processChildren(bNode, branch.querySelector(':scope > .children'), null, 1, 'left');
+  });
+
+  // Right side
+  const rightBranches = map.querySelectorAll('.right-side > .branch');
+  const rightBranchNodes = [];
+  rightBranches.forEach(branch => {
+    const bNode = branch.querySelector('.branch-node');
+    if (bNode) rightBranchNodes.push(bNode);
+  });
+  if (rightBranchNodes.length) {
+    connect(rootNode, rightBranchNodes, lineStyles[0].color, lineStyles[0].width, 'right');
+  }
+  rightBranches.forEach(branch => {
+    const bNode = branch.querySelector('.branch-node');
+    if (!bNode) return;
+    processChildren(bNode, branch.querySelector(':scope > .children'), null, 1, 'right');
+  });
+
+  map.insertBefore(svg, map.firstChild);
+  console.log(`✅ Drew ${lineCount} lines`);
+}
+
+window.addEventListener('load', () => setTimeout(drawAllLines, 300));
+</script>
+</body>
+</html>
