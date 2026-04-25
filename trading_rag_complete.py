@@ -39,19 +39,36 @@ class TridentSearch:
 
     def _recency_score(self, date_str):
         try:
-            year, month, _ = date_str.split("-")
-            return int(year) * 12 + int(month)
+            year, month, day = date_str.split("-")
+            return int(year) * 10000 + int(month) * 100 + int(day)
         except:
-            return 2019 * 12
+            return 20190101
+
+    def _deduplicate_by_concepts(self, results):
+        """当多个chunk讨论相同core_concepts时，只保留最新的（时间最晚的）。"""
+        date_to_best = {}
+        for r in results:
+            concepts = r.get("core_concepts", [])
+            date = r.get("source_date", "")
+            key = tuple(sorted(set(concepts)))
+            if key not in date_to_best:
+                date_to_best[key] = r
+            else:
+                existing_date = date_to_best[key].get("source_date", "")
+                if date > existing_date:
+                    date_to_best[key] = r
+        return list(date_to_best.values())
 
     def _rerank(self, results, top_k):
-        scored = []
-        for r in results:
-            r["final_score"] = r.get("keyword_score", 0) * 10 + r.get("recency_score", 0) * 0.01
-            scored.append(r)
+        deduped = self._deduplicate_by_concepts(results)
 
-        scored.sort(key=lambda x: x["final_score"], reverse=True)
-        return scored[:top_k]
+        for r in deduped:
+            recency = r.get("recency_score", 20190101)
+            keyword = r.get("keyword_score", 0)
+            r["final_score"] = keyword * 5 + recency * 0.001
+
+        deduped.sort(key=lambda x: x["final_score"], reverse=True)
+        return deduped[:top_k]
 
     def _extract_keywords(self, text):
         chinese_words = re.findall(r'[\u4e00-\u9fff]+', text)
@@ -142,20 +159,23 @@ class TridentSearch:
 class TradingRAGComplete:
     SYSTEM_PROMPT = """你正在检索《冷爱》交易日记。
 
-重要原则：
-1. 作者的认知是动态演进的。对同一问题的观点在不同时期可能不同甚至矛盾。
-2. 在回答时，请以最新的、更成熟的认知为主要依据。
-3. 如果引用了早期观点，需明确指出这是"早期探索"，并说明其后续如何演进。
-4. 不要将不同时期的观点混为一谈，要分清时间脉络。
-5. 优先使用市场逻辑和周期理论来回答实战术问题。
-6. 对于心态和哲学问题，引用心法哲学和自我反省类内容。
-7. 对于类比问题，引用跨域类比内容。
+核心原则：认知进化论
+1. 冷爱的认知是不断进化的过程。同一问题在不同时期可能有不同甚至矛盾的答案。
+2. 时间是最重要的过滤器：当观点模糊或矛盾时，以后面时间的为准。
+3. 检索结果和回答中，优先呈现最新的成熟认知。
+4. 如果引用了早期探索观点，必须标注"早期探索（日期）"，并说明后续认知如何演进。
+5. 不要将不同阶段的观点混为一谈，按时间脉络区分。
 
-认知阶段参考：
-- 探索期(19年初)：早期探索，观点正在形成
-- 体系构建期(19年中)：开始构建交易体系
-- 突破期(20年)：认知框架开始升华
-- 升华期(21年)：达到更高维度的认知"""
+内容类型参考：
+- 微观复盘、周期理论 → 市场逻辑问题
+- 心法哲学、自我反省、系统思考 → 心态和认知问题
+- 跨域类比 → 思维方式拓展
+
+认知阶段（按时间排序）：
+  探索期(19年初)   → 体系构建期(19年中) → 突破期(20年) → 升华期(21年)
+  早期，观点正在形成    开始构建体系      认知框架升华    更高维度的认知
+
+当同一概念出现多次，取最新的那个。" """
 
     def __init__(self):
         self.search = TridentSearch()
